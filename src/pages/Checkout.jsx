@@ -157,7 +157,7 @@ const Checkout = () => {
   // --- EMPTY CART STATE ---
   if (cartItems.length === 0) {
       return (
-          <div className="h-screen flex flex-col items-center justify-center bg-[#FDFBF7]">
+          <div className="h-screen flex flex-col items-center justify-center bg-cream">
               <ShoppingBag className="h-16 w-16 text-gray-300 mb-4"/>
               <h2 className="text-2xl font-serif text-charcoal mb-2">Your cart is empty</h2>
               <p className="text-gray-500 mb-6">Looks like you haven't added any art yet.</p>
@@ -172,7 +172,7 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-cream py-8 px-4 sm:px-6 lg:px-8 font-sans">
       
       {/* ADDRESS MODAL */}
       {showAddressModal && (
@@ -317,13 +317,13 @@ const Checkout = () => {
                 <div className="grid grid-cols-2 gap-4">
                     <input 
                         type="text" placeholder="First Name" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.firstName}
                         onChange={(e) => setShippingInfo({...shippingInfo, firstName: e.target.value})}
                     />
                     <input 
                         type="text" placeholder="Last Name" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.lastName}
                         onChange={(e) => setShippingInfo({...shippingInfo, lastName: e.target.value})}
                     />
@@ -332,7 +332,7 @@ const Checkout = () => {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                         <select 
-                            className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition appearance-none"
+                            className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition appearance-none"
                             value={shippingInfo.country}
                             onChange={handleCountryChange}
                         >
@@ -348,7 +348,7 @@ const Checkout = () => {
 
                     <input 
                         type="text" placeholder="State / Province" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.state}
                         onChange={(e) => setShippingInfo({...shippingInfo, state: e.target.value})}
                     />
@@ -356,20 +356,20 @@ const Checkout = () => {
 
                 <input 
                     type="text" placeholder="Street Address" 
-                    className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                    className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                     value={shippingInfo.address}
                     onChange={(e) => setShippingInfo({...shippingInfo, address: e.target.value})}
                 />
                 <div className="grid grid-cols-2 gap-4">
                     <input 
                         type="text" placeholder="City" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.city}
                         onChange={(e) => setShippingInfo({...shippingInfo, city: e.target.value})}
                     />
                     <input 
                         type="text" placeholder="Zip / Postal Code" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.zipCode}
                         onChange={(e) => setShippingInfo({...shippingInfo, zipCode: e.target.value})}
                     />
@@ -378,13 +378,13 @@ const Checkout = () => {
                 <div className="space-y-4">
                     <input 
                         type="tel" placeholder="Phone" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.phone}
                         onChange={(e) => setShippingInfo({...shippingInfo, phone: e.target.value})}
                     />
                     <input 
                         type="email" placeholder="Email address" 
-                        className="w-full border border-gray-300 p-3 rounded-sm bg-[#FDFBF7] focus:bg-white focus:border-charcoal outline-none transition"
+                        className="w-full border border-gray-300 p-3 rounded-sm bg-cream focus:bg-white focus:border-charcoal outline-none transition"
                         value={shippingInfo.email}
                         onChange={(e) => setShippingInfo({...shippingInfo, email: e.target.value})}
                     />

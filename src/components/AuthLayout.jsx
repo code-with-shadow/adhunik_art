@@ -35,7 +35,7 @@ export default function AuthLayout({ children, authentication = true, adminOnly 
   }, [authStatus, navigate, authentication, adminOnly, isAdmin]);
 
   return loader ? (
-    <div className="h-screen flex justify-center items-center bg-[#FDFBF7]">
+    <div className="h-screen flex justify-center items-center bg-cream">
         <Loader2 className="animate-spin h-10 w-10 text-charcoal"/>
     </div> 
   ) : <>{children}</>;

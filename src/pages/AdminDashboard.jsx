@@ -30,7 +30,7 @@ const SidebarItem = ({ icon: Icon, label, active, to = "#" }) => (
 );
 
 const StatCard = ({ title, value, subtext }) => (
-  <div className="bg-[#F4F1EA] p-6 rounded-lg border border-[#EBE7DE] shadow-sm">
+  <div className="bg-beige-lighter2 p-6 rounded-lg border border-beige-border shadow-sm">
     <h3 className="text-sm font-medium text-gray-500 mb-2">{title}</h3>
     <p className="text-3xl font-serif text-charcoal mb-1">{value}</p>
     {subtext && <p className="text-xs text-gray-400">{subtext}</p>}
@@ -99,10 +99,10 @@ const AdminDashboard = () => {
   const location = useLocation();
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
+    <div className="min-h-screen bg-cream flex font-sans text-charcoal">
       
       {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col">
+      <aside className="w-64 bg-beige-light border-r border-beige-border fixed h-full hidden md:flex flex-col">
         <div className="p-8">
             <h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1>
         </div>
@@ -116,7 +116,7 @@ const AdminDashboard = () => {
             <SidebarItem icon={Settings} label="Settings" to="#" />
         </nav>
         
-        <div className="p-4 border-t border-[#EBE7DE]">
+        <div className="p-4 border-t border-beige-border">
             <div className="flex items-center space-x-3 px-4 py-3">
                 <div className="h-8 w-8 rounded-full bg-gray-200 overflow-hidden">
                     <img src="https://ui-avatars.com/api/?name=Admin+User&background=2D2D2D&color=fff" alt="Admin" />
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
       <main className="flex-1 md:ml-64">
         
         {/* Top Header (Mobile menu would go here) */}
-        <header className="h-16 bg-white/50 backdrop-blur-sm border-b border-[#EBE7DE] sticky top-0 z-10 px-8 flex items-center justify-between">
+        <header className="h-16 bg-white/50 backdrop-blur-sm border-b border-beige-border sticky top-0 z-10 px-8 flex items-center justify-between">
             <h2 className="text-xl font-serif">Dashboard</h2>
             <div className="flex items-center space-x-4">
                 <div className="relative">
@@ -162,7 +162,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* 2. Chart Section */}
-            <div className="bg-white p-8 rounded-xl border border-[#EBE7DE] shadow-sm">
+            <div className="bg-white p-8 rounded-xl border border-beige-border shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h3 className="text-lg font-medium">Sales - Last 30 Days</h3>
@@ -171,7 +171,7 @@ const AdminDashboard = () => {
                             <span>+12.5% from last month</span>
                         </div>
                     </div>
-                    <select className="bg-[#F9F7F2] border-none text-sm rounded-md px-3 py-1 text-gray-600 outline-none cursor-pointer">
+                    <select className="bg-beige-light border-none text-sm rounded-md px-3 py-1 text-gray-600 outline-none cursor-pointer">
                         <option>Last 30 Days</option>
                         <option>Last 7 Days</option>
                         <option>This Year</option>
@@ -181,15 +181,15 @@ const AdminDashboard = () => {
             </div>
 
             {/* 3. Recent Orders Table */}
-            <div className="bg-white rounded-xl border border-[#EBE7DE] shadow-sm overflow-hidden">
-                <div className="px-8 py-6 border-b border-[#EBE7DE] flex justify-between items-center">
+            <div className="bg-white rounded-xl border border-beige-border shadow-sm overflow-hidden">
+                <div className="px-8 py-6 border-b border-beige-border flex justify-between items-center">
                     <h3 className="text-lg font-medium">Recent Orders</h3>
                     <Link to="/admin/orders" className="text-sm text-gray-500 hover:text-charcoal underline">View All</Link>
                 </div>
                 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-[#F9F7F2] text-gray-500">
+                        <thead className="bg-beige-light text-gray-500">
                             <tr>
                                 <th className="px-8 py-4 font-medium">Order ID</th>
                                 <th className="px-8 py-4 font-medium">Date</th>
@@ -199,14 +199,14 @@ const AdminDashboard = () => {
                                 <th className="px-8 py-4 font-medium text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#EBE7DE]">
+                        <tbody className="divide-y divide-beige-border">
                             {[
                                 { id: "1013001", date: "2023-06-27", customer: "Customer A", total: "$450.00", paid: "Paid", fulfillment: "Unfulfilled" },
                                 { id: "1013002", date: "2023-06-26", customer: "Customer B", total: "$120.00", paid: "Paid", fulfillment: "Unfulfilled" },
                                 { id: "1013003", date: "2023-06-25", customer: "Customer C", total: "$850.00", paid: "Pending", fulfillment: "Unfulfilled" },
                                 { id: "1013004", date: "2023-06-24", customer: "Customer D", total: "$35.00", paid: "Paid", fulfillment: "Fulfilled" },
                             ].map((order, i) => (
-                                <tr key={i} className="hover:bg-[#FDFBF7] transition-colors">
+                                <tr key={i} className="hover:bg-cream transition-colors">
                                     <td className="px-8 py-4 font-medium text-charcoal">#{order.id}</td>
                                     <td className="px-8 py-4 text-gray-500">{order.date}</td>
                                     <td className="px-8 py-4 text-charcoal">{order.customer}</td>

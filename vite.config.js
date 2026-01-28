@@ -19,10 +19,25 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'redux-vendor': ['redux', 'react-redux', '@reduxjs/toolkit'],
-          'ui-vendor': ['lucide-react'],
+        // ✅ FIX: Converted from Object to Function for compatibility
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // React Vendor
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'react-vendor';
+            }
+            // Redux Vendor
+            if (id.includes('@reduxjs') || id.includes('react-redux') || id.includes('redux')) {
+              return 'redux-vendor';
+            }
+            // UI Vendor
+            if (id.includes('lucide-react')) {
+              return 'ui-vendor';
+            }
+            
+            // Optional: bundle remaining node_modules into a common vendor file
+            // return 'vendor'; 
+          }
         },
       },
     },

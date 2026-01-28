@@ -67,9 +67,9 @@ const AdminProducts = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
+    <div className="min-h-screen bg-cream flex font-sans text-charcoal">
       {/* Sidebar (Same as before) */}
-      <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col z-20">
+      <aside className="w-64 bg-beige-light border-r border-beige-border fixed h-full hidden md:flex flex-col z-20">
         <div className="p-8"><h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1></div>
         <nav className="flex-1 px-4 space-y-2">
             <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/admin/dashboard" />
@@ -117,10 +117,10 @@ const AdminProducts = () => {
         </div>
 
         {/* Filters Bar & Table (Existing code, just adding Action column) */}
-        <div className="bg-white rounded-xl border border-[#EBE7DE] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-beige-border shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-[#F4F1EA] text-charcoal border-b border-[#EBE7DE]">
+                    <thead className="bg-beige-lighter2 text-charcoal border-b border-beige-border">
                         <tr>
                             <th className="px-6 py-4 font-semibold w-16">Image</th>
                             <th className="px-6 py-4 font-semibold">Product Name</th>
@@ -130,10 +130,10 @@ const AdminProducts = () => {
                             <th className="px-6 py-4 font-semibold text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EBE7DE]">
+                    <tbody className="divide-y divide-beige-border">
                         {loading ? <tr><td colSpan="6" className="p-8 text-center">Loading...</td></tr> : 
                         products.map((product) => (
-                            <tr key={product.$id} className="hover:bg-[#FDFBF7] transition-colors">
+                            <tr key={product.$id} className="hover:bg-cream transition-colors">
                                 <td className="px-6 py-3">
                                     <div className="h-12 w-12 rounded-md overflow-hidden bg-gray-100">
                                         <OptimizedImage src={service.getThumbnail(product.imageUrl)} alt={product.title} className="h-full w-full object-cover" />

@@ -120,9 +120,9 @@ const AdminUpload = () => {
     const labelClass = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2";
 
     return (
-        <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
+        <div className="min-h-screen bg-cream flex font-sans text-charcoal">
             {/* Sidebar */}
-            <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col z-20">
+            <aside className="w-64 bg-beige-light border-r border-beige-border fixed h-full hidden md:flex flex-col z-20">
                 <div className="p-8"><h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1></div>
                 <nav className="flex-1 px-4 space-y-2">
                     <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/admin" />

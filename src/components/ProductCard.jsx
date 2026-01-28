@@ -34,68 +34,33 @@ const ProductCard = memo(({ painting }) => {
 
   return (
     <Link to={`/product/${painting.$id}`} className="group cursor-pointer block relative">
-
-      {/* Image Container */}
-      <div className="aspect-[4/5] w-full overflow-hidden bg-gray-100 mb-3 relative rounded-sm">
-        <OptimizedImage
-          src={imageUrl}
-          alt={painting.title}
-          containerClassName="w-full h-full"
-          className="group-hover:scale-105 transition-transform duration-500 ease-out"
-        />
-
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
-
-        {/* Discount Badge */}
-        {discount > 0 && !painting.isSold && (
-          <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider z-10 rounded-sm">
-            {discount}% OFF
+      <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow h-full">
+        <div className="w-full mb-4">
+          <div className="bg-[#f6f3ea] rounded-md p-3 flex items-center justify-center">
+            <div className="bg-white rounded-sm shadow-inner border-4 border-frame p-1 w-full aspect-[4/3] overflow-hidden flex items-center justify-center">
+              <OptimizedImage
+                src={imageUrl}
+                alt={painting.title}
+                containerClassName="w-full h-full"
+                className="object-cover object-center w-full h-full"
+              />
+            </div>
           </div>
-        )}
-
-        {/* Sold Badge */}
-        {painting.isSold && (
-          <div className="absolute top-2 right-2 bg-charcoal text-white text-xs px-2 py-1 uppercase font-bold tracking-widest z-10">
-            Sold
-          </div>
-        )}
-
-
-      </div>
-
-      {/* Text Details */}
-      <div className="space-y-1">
-        <h3 className="text-sm font-medium text-charcoal truncate pr-2 group-hover:text-gold transition-colors">
-          {painting.title}
-        </h3>
-
-        <div className="flex items-center gap-2">
-          {/* Final Price */}
-          <p className="text-sm text-charcoal font-bold font-serif">
-            ${finalPrice?.toLocaleString()}
-          </p>
-
-          {/* Original Price (Strikethrough) */}
-          {discount > 0 && (
-            <p className="text-xs text-gray-400 line-through decoration-gray-400">
-              ${originalPrice?.toLocaleString()}
-            </p>
-          )}
         </div>
 
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-charcoal truncate">{painting.title}</h3>
+          {painting.artist && (
+            <p className="text-xs text-gray-500">{painting.artist}</p>
+          )}
 
-        {/* ❤️ Like Button Overlay */}
-        <button
-          onClick={handleLike}
-          className="absolute bottom-1 right-3 bg-white/90 hover:bg-white p-2 rounded-full shadow-sm transition-all z-20 group/heart flex flex-col items-center justify-center min-w-[40px]"
-        >
-          <Heart
-            size={18}
-            className={`transition-colors ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
-          />
-          <span className="text-[9px] font-bold text-gray-500 mt-0.5">{likes}</span>
-        </button>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-sm text-charcoal font-bold font-serif">{`$${finalPrice?.toLocaleString('en-IN')}`}</p>
+            {discount > 0 && (
+              <p className="text-xs text-gray-400 line-through">{`$${originalPrice?.toLocaleString('en-IN')}`}</p>
+            )}
+          </div>
+        </div>
       </div>
     </Link>
   );

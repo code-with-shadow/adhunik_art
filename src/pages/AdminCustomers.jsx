@@ -48,10 +48,10 @@ const AdminCustomers = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
+    <div className="min-h-screen bg-cream flex font-sans text-charcoal">
       
       {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col z-20">
+      <aside className="w-64 bg-beige-light border-r border-beige-border fixed h-full hidden md:flex flex-col z-20">
         <div className="p-8">
             <h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1>
         </div>
@@ -85,19 +85,19 @@ const AdminCustomers = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <h2 className="text-3xl font-serif text-charcoal">Customers</h2>
             <div className="flex gap-2">
-                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-[#EBE7DE] rounded-md text-sm font-medium hover:bg-gray-50 transition">
+                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-beige-border rounded-md text-sm font-medium hover:bg-gray-50 transition">
                     <Download size={16} /> Export CSV
                  </button>
             </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-white p-4 rounded-t-xl border border-[#EBE7DE] border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white p-4 rounded-t-xl border border-beige-border border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
             
             {/* Left: Dropdowns */}
             <div className="flex gap-3 w-full md:w-auto overflow-x-auto">
                 <div className="relative group">
-                    <select className="appearance-none pl-3 pr-8 py-2 bg-[#F9F7F2] border border-[#EBE7DE] rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[140px]">
+                    <select className="appearance-none pl-3 pr-8 py-2 bg-beige-light border border-beige-border rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[140px]">
                         <option value="">Status (All)</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
@@ -107,7 +107,7 @@ const AdminCustomers = () => {
                 </div>
 
                 <div className="relative group">
-                    <select className="appearance-none pl-3 pr-8 py-2 bg-[#F9F7F2] border border-[#EBE7DE] rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[150px]">
+                    <select className="appearance-none pl-3 pr-8 py-2 bg-beige-light border border-beige-border rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[150px]">
                         <option value="">Country (All)</option>
                         <option value="usa">USA</option>
                         <option value="uk">UK</option>
@@ -131,10 +131,10 @@ const AdminCustomers = () => {
         </div>
 
         {/* Table Section */}
-        <div className="bg-white rounded-b-xl border border-[#EBE7DE] shadow-sm overflow-hidden">
+        <div className="bg-white rounded-b-xl border border-beige-border shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-[#F4F1EA] text-charcoal border-b border-[#EBE7DE]">
+                    <thead className="bg-beige-lighter2 text-charcoal border-b border-beige-border">
                         <tr>
                             <th className="px-6 py-4 font-semibold">Customer Name</th>
                             <th className="px-6 py-4 font-semibold">Email Address</th>
@@ -144,12 +144,12 @@ const AdminCustomers = () => {
                             <th className="px-6 py-4 font-semibold text-right">Total Spent</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EBE7DE]">
+                    <tbody className="divide-y divide-beige-border">
                         {MOCK_CUSTOMERS.filter(c => 
                             c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             c.email.toLowerCase().includes(searchTerm.toLowerCase())
                         ).map((customer, i) => (
-                            <tr key={i} className="hover:bg-[#FDFBF7] transition-colors group cursor-pointer">
+                            <tr key={i} className="hover:bg-cream transition-colors group cursor-pointer">
                                 <td className="px-6 py-4 font-medium text-charcoal">{customer.name}</td>
                                 <td className="px-6 py-4 text-gray-500 flex items-center gap-2">
                                     <Mail size={14} className="text-gray-300" />
@@ -175,11 +175,11 @@ const AdminCustomers = () => {
             </div>
             
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-[#EBE7DE] bg-[#F9F7F2] flex justify-between items-center text-xs text-gray-500">
+            <div className="px-6 py-4 border-t border-beige-border bg-beige-light flex justify-between items-center text-xs text-gray-500">
                 <span>Showing {MOCK_CUSTOMERS.length} customers</span>
                 <div className="flex gap-2">
-                    <button className="px-3 py-1 border border-[#EBE7DE] bg-white rounded hover:bg-gray-50 disabled:opacity-50">Prev</button>
-                    <button className="px-3 py-1 border border-[#EBE7DE] bg-white rounded hover:bg-gray-50">Next</button>
+                    <button className="px-3 py-1 border border-beige-border bg-white rounded hover:bg-gray-50 disabled:opacity-50">Prev</button>
+                    <button className="px-3 py-1 border border-beige-border bg-white rounded hover:bg-gray-50">Next</button>
                 </div>
             </div>
         </div>

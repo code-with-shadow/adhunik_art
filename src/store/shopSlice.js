@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import service from '../backend/config'; // Keeping your path
+import service from '../backend/config';
 import { Query } from 'appwrite';
 
 // --- 1. EXISTING THUNK: Fetch specific categories (For Home Page) ---
@@ -30,8 +30,6 @@ export const fetchFilteredPaintings = createAsyncThunk(
       const queries = [];
 
       // A. Apply Filters
-      // Note: If you haven't added 'medium' or 'style' to your Appwrite Database yet, 
-      // these specific filters won't return results, but the page will still load.
       if (filters.medium?.length > 0) {
         queries.push(Query.equal('medium', filters.medium));
       }
@@ -49,7 +47,7 @@ export const fetchFilteredPaintings = createAsyncThunk(
         queries.push(Query.between('price', filters.priceRange[0], filters.priceRange[1]));
       }
 
-      // Always hide sold items in the shop unless you want a "Sold" archive
+      // Hide sold items
       queries.push(Query.equal('isSold', false));
 
       // B. Apply Sorting
@@ -82,14 +80,9 @@ export const fetchFilteredPaintings = createAsyncThunk(
 const shopSlice = createSlice({
   name: 'shop',
   initialState: {
-    // Existing State for Home Page Sections
-    categories: {
-      Abstract: { loading: false, items: [], total: 0, offset: 0, error: null },
-      Landscape: { loading: false, items: [], total: 0, offset: 0, error: null },
-      Portrait: { loading: false, items: [], total: 0, offset: 0, error: null },
-      Modern: { loading: false, items: [], total: 0, offset: 0, error: null },
-    },
-    // New State for the main Shop Page
+    // We start with an empty object. Keys will be added dynamically.
+    categories: {}, 
+    // State for the main Shop Page
     shopPage: {
       items: [],
       total: 0,
@@ -100,17 +93,24 @@ const shopSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // --- EXISTING HANDLERS (Home Page) ---
+      // --- DYNAMIC CATEGORY HANDLERS ---
+      
+      // 1. Pending: Create the category object if it doesn't exist
       .addCase(fetchCategoryPaintings.pending, (state, action) => {
         const { category } = action.meta.arg;
-        if (state.categories[category]) {
+        if (!state.categories[category]) {
+          state.categories[category] = { loading: true, items: [], total: 0, offset: 0, error: null };
+        } else {
           state.categories[category].loading = true;
           state.categories[category].error = null;
         }
       })
+
+      // 2. Fulfilled: Add data to the category
       .addCase(fetchCategoryPaintings.fulfilled, (state, action) => {
         const { category, documents, total } = action.payload;
         
+        // Safety check (should exist from pending, but just in case)
         if (!state.categories[category]) {
           state.categories[category] = { loading: false, items: [], total: 0, offset: 0, error: null };
         }
@@ -118,6 +118,7 @@ const shopSlice = createSlice({
         state.categories[category].loading = false;
         state.categories[category].total = total;
 
+        // Prevent duplicates when appending
         const uniqueDocuments = documents.filter(
             (newDoc) => !state.categories[category].items.some((existingDoc) => existingDoc.$id === newDoc.$id)
         );
@@ -125,23 +126,25 @@ const shopSlice = createSlice({
         state.categories[category].items = [...state.categories[category].items, ...uniqueDocuments];
         state.categories[category].offset += uniqueDocuments.length;
       })
+
+      // 3. Rejected: Handle errors
       .addCase(fetchCategoryPaintings.rejected, (state, action) => {
         const { category } = action.meta.arg;
-        if (state.categories[category]) {
-          state.categories[category].loading = false;
-          state.categories[category].error = action.payload;
+        if (!state.categories[category]) {
+             state.categories[category] = { loading: false, items: [], total: 0, offset: 0, error: action.payload };
+        } else {
+             state.categories[category].loading = false;
+             state.categories[category].error = action.payload;
         }
       })
 
-      // --- NEW HANDLERS (Shop Page) ---
+      // --- SHOP PAGE HANDLERS (Unchanged) ---
       .addCase(fetchFilteredPaintings.pending, (state) => {
         state.shopPage.loading = true;
         state.shopPage.error = null;
       })
       .addCase(fetchFilteredPaintings.fulfilled, (state, action) => {
         state.shopPage.loading = false;
-        // For the main shop page, we replace the items (standard pagination behavior)
-        // instead of appending, so filters feel responsive.
         state.shopPage.items = action.payload.documents;
         state.shopPage.total = action.payload.total;
       })
