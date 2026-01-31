@@ -11,7 +11,9 @@ import {
   Search, 
   ChevronDown,
   Download,
-  Loader2
+  Loader2,
+  Save,
+  CheckCircle2
 } from 'lucide-react';
 
 // --- Components ---
@@ -30,36 +32,14 @@ const SidebarItem = ({ icon: Icon, label, to = "#", active }) => (
   </Link>
 );
 
-const StatusBadge = ({ status }) => {
-  // Normalize status for styling
-  const s = status ? status.toLowerCase() : 'pending';
-  
-  let styles = "bg-gray-50 text-gray-600 border-gray-200";
-
-  if (s === 'completed' || s === 'paid' || s === 'fulfilled') {
-      styles = "bg-green-100 text-green-700 border-green-200";
-  } else if (s === 'pending') {
-      styles = "bg-amber-100 text-amber-700 border-amber-200";
-  } else if (s === 'failed' || s === 'cancelled') {
-      styles = "bg-red-100 text-red-700 border-red-200";
-  } else if (s === 'shipped') {
-      styles = "bg-blue-100 text-blue-700 border-blue-200";
-  }
-
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles} capitalize`}>
-      {status || 'Unknown'}
-    </span>
-  );
-};
-
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [updatingId, setUpdatingId] = useState(null); // Track which row is updating
 
-  // 1. Fetch Orders from Appwrite
+  // 1. Fetch Orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -71,22 +51,36 @@ const AdminOrders = () => {
         setLoading(false);
       }
     };
-
     fetchOrders();
   }, []);
 
-  // 2. Filter Logic
+  // 2. Handle Updates (Live Database Edit)
+  const handleUpdate = async (orderId, field, value) => {
+      setUpdatingId(orderId); // Show spinner for this row
+      try {
+          // Update in Database
+          await service.updateOrder(orderId, { [field]: value });
+          
+          // Update in Local State (UI)
+          setOrders(prev => prev.map(o => o.$id === orderId ? { ...o, [field]: value } : o));
+          
+      } catch (error) {
+          console.error("Update failed:", error);
+          alert("Failed to update order. Check console.");
+      } finally {
+          setUpdatingId(null);
+      }
+  };
+
+  // 3. Filter Logic
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
         (order.customerName && order.customerName.toLowerCase().includes(searchTerm.toLowerCase())) || 
         (order.$id && order.$id.includes(searchTerm));
-    
     const matchesStatus = filterStatus ? order.status === filterStatus : true;
-
     return matchesSearch && matchesStatus;
   });
 
-  // Helper to format date
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -94,15 +88,30 @@ const AdminOrders = () => {
     });
   };
 
+  // Helper for Status Colors
+  const getStatusColor = (status) => {
+      const s = status?.toLowerCase() || '';
+      if (s === 'paid' || s === 'completed') return 'bg-green-100 text-green-800 border-green-200';
+      if (s === 'cod') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      if (s === 'failed') return 'bg-red-100 text-red-800 border-red-200';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  // Helper for Order Complete Colors
+  const getCompleteColor = (val) => {
+      return val === 'yes' 
+        ? 'bg-blue-100 text-blue-800 border-blue-200' 
+        : 'bg-gray-100 text-gray-500 border-gray-200';
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
       
-      {/* --- SIDEBAR --- */}
+      {/* SIDEBAR */}
       <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col z-20">
         <div className="p-8">
             <h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1>
         </div>
-        
         <nav className="flex-1 px-4 space-y-2">
             <SidebarItem icon={LayoutDashboard} label="Dashboard" to="/admin/dashboard" />
             <SidebarItem icon={Package} label="Products" to="/admin/products" />
@@ -113,10 +122,10 @@ const AdminOrders = () => {
         </nav>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 md:ml-64 p-8">
         
-        {/* Page Header */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <h2 className="text-3xl font-serif text-charcoal">Orders</h2>
             <div className="flex gap-2">
@@ -126,10 +135,8 @@ const AdminOrders = () => {
             </div>
         </div>
 
-        {/* Filters Bar */}
+        {/* Filters */}
         <div className="bg-white p-4 rounded-t-xl border border-gray-200 border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
-            
-            {/* Left: Dropdowns */}
             <div className="flex gap-3 w-full md:w-auto overflow-x-auto">
                 <div className="relative group">
                     <select 
@@ -138,15 +145,13 @@ const AdminOrders = () => {
                         value={filterStatus}
                     >
                         <option value="">All Statuses</option>
-                        <option value="completed">Completed</option>
-                        <option value="pending">Pending</option>
-                        <option value="failed">Failed</option>
+                        <option value="Paid">Paid</option>
+                        <option value="COD">COD</option>
+                        <option value="Failed">Failed</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
             </div>
-
-            {/* Right: Search */}
             <div className="relative w-full md:w-64">
                 <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input 
@@ -159,7 +164,7 @@ const AdminOrders = () => {
             </div>
         </div>
 
-        {/* Table Section */}
+        {/* DATA TABLE */}
         <div className="bg-white rounded-b-xl border border-gray-200 shadow-sm overflow-hidden min-h-[400px]">
             {loading ? (
                 <div className="flex h-64 items-center justify-center">
@@ -175,28 +180,25 @@ const AdminOrders = () => {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-gray-50 text-charcoal border-b border-gray-200">
                             <tr>
-                                <th className="px-6 py-4 font-semibold w-32">Order ID</th>
-                                <th className="px-6 py-4 font-semibold">Date</th>
+                                <th className="px-6 py-4 font-semibold w-24">ID</th>
+                                <th className="px-6 py-4 font-semibold w-32">Date</th>
                                 <th className="px-6 py-4 font-semibold">Customer</th>
-                                <th className="px-6 py-4 font-semibold">Payment</th>
+                                <th className="px-6 py-4 font-semibold w-32">Payment Status</th>
+                                <th className="px-6 py-4 font-semibold w-32">Order Complete</th>
                                 <th className="px-6 py-4 font-semibold">Method</th>
                                 <th className="px-6 py-4 font-semibold text-right">Total</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {filteredOrders.map((order) => {
-                                // 👇 LOGIC: Calculate Total Amount
-                                // Using 'amount' field from DB. Defaults to 0 if missing.
                                 const orderTotal = parseFloat(order.amount) || 0;
-                                
-                                // Determine currency symbol based on backend data (if saved) or guess
-                                // Assuming USD ($) as default, but you can check if amount seems like INR or add a 'currency' field to DB later
-                                const currency = order.amount > 5000 ? '₹' : '$'; // Simple heuristic: >5000 is likely INR
+                                const currency = orderTotal > 5000 ? '₹' : '$';
+                                const isUpdating = updatingId === order.$id;
 
                                 return (
-                                <tr key={order.$id} className="hover:bg-gray-50 transition-colors group cursor-pointer">
-                                    <td className="px-6 py-4 font-medium text-charcoal truncate max-w-[120px]" title={order.$id}>
-                                        #{order.$id.substring(0, 8)}...
+                                <tr key={order.$id} className="hover:bg-gray-50 transition-colors group">
+                                    <td className="px-6 py-4 font-medium text-charcoal truncate max-w-[100px]" title={order.$id}>
+                                        #{order.$id.substring(0, 8)}
                                     </td>
                                     <td className="px-6 py-4 text-gray-500">
                                         {formatDate(order.$createdAt)}
@@ -205,15 +207,45 @@ const AdminOrders = () => {
                                         {order.customerName || "Guest"}
                                         <div className="text-xs text-gray-400 font-normal">{order.email}</div>
                                     </td>
+                                    
+                                    {/* 🟢 EDITABLE: Payment Status */}
                                     <td className="px-6 py-4">
-                                        <StatusBadge status={order.status} />
+                                        {isUpdating ? (
+                                            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                        ) : (
+                                            <select 
+                                                value={order.status || 'Pending'}
+                                                onChange={(e) => handleUpdate(order.$id, 'status', e.target.value)}
+                                                className={`appearance-none cursor-pointer pl-3 pr-8 py-1 rounded-full text-xs font-bold border outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 transition-all ${getStatusColor(order.status)}`}
+                                            >
+                                                <option value="Paid">Paid</option>
+                                                <option value="COD">COD</option>
+                                                {/* <option value="Pending">Pending</option> */}
+                                                {/* <option value="Failed">Failed</option> */}
+                                            </select>
+                                        )}
                                     </td>
+
+                                    {/* 🔵 EDITABLE: Order Complete */}
+                                    <td className="px-6 py-4">
+                                        {isUpdating ? (
+                                            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                                        ) : (
+                                            <select 
+                                                value={order.ordercomplete || 'no'} // Default to 'no' if attribute missing
+                                                onChange={(e) => handleUpdate(order.$id, 'ordercomplete', e.target.value)}
+                                                className={`appearance-none cursor-pointer pl-3 pr-8 py-1 rounded-full text-xs font-bold border outline-none focus:ring-2 focus:ring-offset-1 focus:ring-gray-200 transition-all ${getCompleteColor(order.ordercomplete || 'no')}`}
+                                            >
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </select>
+                                        )}
+                                    </td>
+
                                     <td className="px-6 py-4 text-gray-500 capitalize">
-                                        {/* Display Payment Method: PayPal vs Manual/COD */}
                                         {order.paymentId && order.paymentId.length > 20 ? "PayPal" : "COD / Manual"}
                                     </td>
                                     <td className="px-6 py-4 text-right font-medium text-charcoal font-serif">
-                                        {/* Display Formatted Amount */}
                                         {currency}{orderTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </td>
                                 </tr>
