@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import service from '../backend/config';
-import { Loader2, UploadCloud, Image as ImageIcon, Ruler, LayoutDashboard, Package, ShoppingCart, Users, Palette, Settings } from 'lucide-react';
+import { Loader2, UploadCloud, LayoutDashboard, Package, ShoppingCart, Users, Palette, Settings, Ruler, DollarSign, IndianRupee } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 
 // --- Sidebar Component ---
@@ -27,14 +27,15 @@ const AdminUpload = () => {
     // Load data if editing
     useEffect(() => {
         if (editModeProduct) {
-            // Fill form with existing data
-            const fields = ['title', 'price', 'category', 'medium', 'style', 'shippingZone', 'width', 'height', 'length', 'weight', 'description'];
+            // Fill form with existing basic data
+            const fields = ['title', 'category', 'medium', 'style', 'shippingZone', 'width', 'height', 'length', 'weight', 'description'];
             fields.forEach(field => setValue(field, editModeProduct[field]));
             
-            // Handle Discount (Ensure it's a number in the input)
-            if (editModeProduct.discount) {
-                setValue('discount', parseInt(editModeProduct.discount)); 
-            }
+            // Fill Price & Discount Data (New Schema)
+            setValue('pricein', editModeProduct.pricein);
+            setValue('priceusd', editModeProduct.priceusd);
+            setValue('discountin', editModeProduct.discountin);
+            setValue('discountusd', editModeProduct.discountusd);
 
             // Set existing image preview
             if (editModeProduct.imageUrl) {
@@ -64,7 +65,6 @@ const AdminUpload = () => {
                 
                 try {
                     const compressedFile = await imageCompression(rawFile, options);
-                    // Create a new File object from the compressed blob
                     const compressedFileObj = new File([compressedFile], rawFile.name, { type: "image/webp" });
                     const uploadedFile = await service.uploadFile(compressedFileObj);
                     fileId = uploadedFile.$id;
@@ -75,14 +75,9 @@ const AdminUpload = () => {
                 }
             }
 
-            // 2. Prepare Payload (CORRECTED TYPES)
+            // 2. Prepare Payload (With New Price Fields)
             const payload = {
                 title: data.title,
-                price: parseFloat(data.price), // Double
-                
-                // 👇 FIX: Send Discount as Integer (Number), NOT String
-                discount: data.discount ? parseInt(data.discount) : 0, 
-
                 category: data.category || "",
                 description: data.description || "",
                 imageUrl: fileId,
@@ -94,6 +89,12 @@ const AdminUpload = () => {
                 weight: data.weight || "",
                 shippingZone: data.shippingZone || "",
                 
+                // 💰 NEW: Dual Currency Logic
+                pricein: parseFloat(data.pricein) || 0,
+                priceusd: parseFloat(data.priceusd) || 0,
+                discountin: parseFloat(data.discountin) || 0,
+                discountusd: parseFloat(data.discountusd) || 0,
+
                 // Keep existing values or defaults
                 isSold: editModeProduct ? Boolean(editModeProduct.isSold) : false,
                 like: editModeProduct ? parseInt(editModeProduct.like || 0) : 0
@@ -165,41 +166,71 @@ const AdminUpload = () => {
                              </div>
 
                              {/* RIGHT: Details */}
-                             <div className="p-8 md:col-span-2 space-y-6">
+                             <div className="p-8 md:col-span-2 space-y-8">
                                 
+                                {/* 1. Basic Info */}
                                 <div>
                                     <label className={labelClass}>Title</label>
                                     <input {...register("title", { required: true })} className={inputClass} placeholder="e.g. Sunset Boulevard" />
                                 </div>
 
-                                {/* Price & Discount Grid */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className={labelClass}>Price ($)</label>
-                                        <input {...register("price", { required: true })} type="number" step="0.01" className={inputClass} placeholder="0.00" />
+                                {/* 2. 💰 Pricing Section (Dual Currency) */}
+                                <div className="bg-gray-50 p-5 rounded-lg border border-gray-100 space-y-4">
+                                    <h3 className="text-sm font-bold text-charcoal flex items-center gap-2 border-b border-gray-200 pb-2">
+                                        <DollarSign size={16} /> Pricing & Discounts
+                                    </h3>
+                                    
+                                    {/* Global (USD) */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelClass}>Price (USD)</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-3 text-gray-400">$</span>
+                                                <input {...register("priceusd", { required: true })} type="number" step="0.01" className={`${inputClass} pl-8`} placeholder="0.00" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Discount (%)</label>
+                                            <input {...register("discountusd")} type="number" min="0" max="100" className={inputClass} placeholder="0" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className={labelClass}>Discount (%)</label>
-                                        <input 
-                                            {...register("discount")} 
-                                            type="number" 
-                                            min="0" 
-                                            max="100" 
-                                            className={inputClass} 
-                                            placeholder="0" 
-                                        />
+
+                                    {/* India (INR) */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelClass}>Price (INR)</label>
+                                            <div className="relative">
+                                                <IndianRupee size={14} className="absolute left-3 top-3.5 text-gray-400" />
+                                                <input {...register("pricein", { required: true })} type="number" step="0.01" className={`${inputClass} pl-8`} placeholder="0.00" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className={labelClass}>Discount (%)</label>
+                                            <input {...register("discountin")} type="number" min="0" max="100" className={inputClass} placeholder="0" />
+                                        </div>
                                     </div>
                                 </div>
 
+                                {/* 3. Categorization */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
                                         <label className={labelClass}>Category</label>
                                         <select {...register("category", { required: true })} className={inputClass}>
                                             <option value="">Select...</option>
-                                            <option value="Abstract">Abstract</option>
                                             <option value="Landscape">Landscape</option>
+                                            <option value="Still Life">Still Life</option>
+                                            <option value="Cloudscape">Cloudscape</option>
+                                            <option value="Abstract">Abstract</option>
+                                            <option value="Flora">Flora</option>
+                                            <option value="Expressionism">Expressionism</option>
+                                            <option value="Folk Art">Folk Art</option>
+                                            <option value="Tribal Art">Tribal Art</option>
+                                            <option value="Digital Art">Digital Art</option>
                                             <option value="Portrait">Portrait</option>
-                                            <option value="Modern">Modern</option>
+                                            <option value="Woman">Woman</option>
+                                            <option value="Pop Art">Pop Art</option>
+                                            <option value="Miniature">Miniature</option>
+                                            <option value="Misc">Misc</option>
                                         </select>
                                     </div>
                                     <div>
@@ -225,7 +256,7 @@ const AdminUpload = () => {
                                     </div>
                                 </div>
 
-                                {/* Dimensions & Weight */}
+                                {/* 4. Dimensions & Weight */}
                                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                                     <label className={`${labelClass} flex items-center gap-2`}>
                                         <Ruler size={14} /> Dimensions (cm) & Weight
@@ -238,12 +269,13 @@ const AdminUpload = () => {
                                     </div>
                                 </div>
 
+                                {/* 5. Description */}
                                 <div>
                                     <label className={labelClass}>Description</label>
                                     <textarea {...register("description")} rows="3" placeholder="Story behind the art..." className={`${inputClass} resize-none`} />
                                 </div>
                                 
-                                <button type="submit" disabled={loading} className="w-full bg-charcoal text-white py-4 text-sm font-bold tracking-widest uppercase hover:bg-black transition-all flex items-center justify-center">
+                                <button type="submit" disabled={loading} className="w-full bg-charcoal text-white py-4 text-sm font-bold tracking-widest uppercase hover:bg-black transition-all flex items-center justify-center rounded-sm shadow-md hover:shadow-lg">
                                     {loading ? <Loader2 className="animate-spin inline mr-2"/> : (editModeProduct ? "Update Artwork" : "Publish to Gallery")}
                                 </button>
                              </div>

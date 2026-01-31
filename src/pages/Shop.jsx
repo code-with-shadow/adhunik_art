@@ -39,7 +39,7 @@ const FilterCheckbox = ({ label, value, checked, onChange }) => (
 const Shop = () => {
     const dispatch = useDispatch();
     const shopState = useSelector((state) => state.shop.shopPage);
-    const items = shopState?.items || []; 
+    const items = shopState?.items || [];
     const total = shopState?.total || 0;
     const loading = shopState?.loading;
 
@@ -126,8 +126,14 @@ const Shop = () => {
                         </FilterSection>
 
                         {/* Subject Filter */}
-                        <FilterSection title="Subject">
-                            {['Landscape', 'Abstract', 'Portrait', 'Still Life'].map((item) => (
+                        <FilterSection title="CATEGORIES">
+                            {[
+                                'Landscape', 'Still Life', 'Cloudscape',
+                                'Abstract', 'Flora', 'Expressionism',
+                                'Folk Art', 'Tribal Art', 'Digital Art',
+                                'Portrait', 'Woman', 'Pop Art',
+                                'Miniature', 'Misc'
+                            ].map((item) => (
                                 <FilterCheckbox
                                     key={item}
                                     label={item}
@@ -266,8 +272,8 @@ const Shop = () => {
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
                                         className={`w-10 h-10 text-sm font-medium rounded-sm transition ${currentPage === page
-                                                ? 'bg-charcoal text-white border border-charcoal'
-                                                : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
+                                            ? 'bg-charcoal text-white border border-charcoal'
+                                            : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
                                             }`}
                                     >
                                         {page}

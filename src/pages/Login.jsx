@@ -12,15 +12,33 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError(""); // Clear previous errors
+        
+        if (!formData.email || !formData.password) {
+            setError("Please enter both email and password");
+            return;
+        }
+
         try {
             const session = await authService.login(formData);
+            console.log("Session created:", session);
+            
             if (session) {
                 const userData = await authService.getCurrentUser();
-                if(userData) dispatch(authLogin(userData));
-                navigate('/'); // Redirect to home
+                console.log("User data retrieved:", userData);
+                
+                if (userData) {
+                    dispatch(authLogin(userData));
+                    navigate('/'); // Redirect to home
+                } else {
+                    setError("Failed to retrieve user information. Please try again.");
+                }
+            } else {
+                setError("Failed to create session. Please try again.");
             }
         } catch (error) {
-            setError(error.message);
+            console.error("Login error:", error);
+            setError(error?.message || "Login failed. Please check your credentials and try again.");
         }
     };
 

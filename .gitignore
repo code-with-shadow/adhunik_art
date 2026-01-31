@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
 dist
 dist-ssr
@@ -22,3 +23,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# --- 🔒 SECURITY (Critical) ---
+# Do not upload these files to GitHub
+.env
+.env.production
+.env.test
+.env.local

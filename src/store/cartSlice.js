@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-// Load initial state from LocalStorage if available
+// Load initial state from LocalStorage
 const loadCartFromStorage = () => {
   const savedCart = localStorage.getItem("cart");
   return savedCart ? JSON.parse(savedCart) : [];
@@ -17,13 +17,9 @@ const cartSlice = createSlice({
     // Action: Add Item
     addToCart: (state, action) => {
       const painting = action.payload;
-      
-      // Check if item already exists to prevent duplicates
       const exists = state.cartItems.find((item) => item.$id === painting.$id);
-      
       if (!exists) {
         state.cartItems.push(painting);
-        // Save to local storage
         localStorage.setItem("cart", JSON.stringify(state.cartItems));
       }
     },
@@ -35,14 +31,35 @@ const cartSlice = createSlice({
       localStorage.setItem("cart", JSON.stringify(state.cartItems));
     },
 
-    // Action: Clear Cart (After payment success)
+    // Action: Clear Cart
     clearCart: (state) => {
       state.cartItems = [];
       localStorage.removeItem("cart");
     },
+
+    // 👇 NEW: Update availability status dynamically
+    syncCartAvailability: (state, action) => {
+        const freshItems = action.payload; // Array of latest painting objects from DB
+        
+        state.cartItems = state.cartItems.map(cartItem => {
+            const freshItem = freshItems.find(p => p.$id === cartItem.$id);
+            if (freshItem) {
+                // Update isSold status and latest price info just in case
+                return { 
+                    ...cartItem, 
+                    isSold: freshItem.isSold,
+                    pricein: freshItem.pricein,
+                    priceusd: freshItem.priceusd,
+                    discountusd: freshItem.discountusd
+                };
+            }
+            return cartItem;
+        });
+        localStorage.setItem("cart", JSON.stringify(state.cartItems));
+    }
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, clearCart, syncCartAvailability } = cartSlice.actions;
 
 export default cartSlice.reducer;

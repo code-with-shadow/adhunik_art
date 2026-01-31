@@ -15,23 +15,31 @@ export class FunctionService {
 
     // Execute the PayPal Verification Function
     // Updated to accept 'items' (array) and 'totalPaid'
-    async verifyPayment({ orderID, items, userId, totalPaid }) {
+    async verifyPayment({ orderID, items, userId, totalPaid, shippingDetails }) {
         try {
+            if (!orderID || !userId || !items || !totalPaid) {
+                throw new Error("Missing required payment verification data");
+            }
+            
             const execution = await this.functions.createExecution(
                 conf.appwritePaymentFunctionId,
                 JSON.stringify({
                     orderID,
-                    items, // Now sending array of IDs
+                    items,
                     userId,
-                    totalPaid
+                    totalPaid: Number(totalPaid).toFixed(2),
+                    currency: "USD",
+                    shippingDetails: shippingDetails || {}
                 })
             );
             
             // Parse the response from the function
-            return JSON.parse(execution.responseBody);
+            const response = JSON.parse(execution.responseBody);
+            console.log("PayPal Verification Response:", response);
+            return response;
         } catch (error) {
-            console.log("Appwrite service :: verifyPayment :: error", error);
-            throw error;
+            console.error("Appwrite service :: verifyPayment :: error", error);
+            throw new Error(error.message || "Payment verification failed");
         }
     }
 }

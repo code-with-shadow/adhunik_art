@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import service from '../backend/config'; // Import your backend service
 import { 
   LayoutDashboard, 
   Package, 
@@ -8,12 +9,12 @@ import {
   Palette, 
   Settings, 
   Search, 
-  Filter,
   ChevronDown,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 
-// --- Components (Reused for consistency) ---
+// --- Components ---
 
 const SidebarItem = ({ icon: Icon, label, to = "#", active }) => (
   <Link 
@@ -29,49 +30,75 @@ const SidebarItem = ({ icon: Icon, label, to = "#", active }) => (
   </Link>
 );
 
-const StatusBadge = ({ status, type }) => {
-  // Define styles based on status content
-  const getStyles = (s) => {
-    switch (s.toLowerCase()) {
-      case 'paid': return "bg-green-100 text-green-700 border-green-200";
-      case 'pending': return "bg-red-100 text-red-700 border-red-200";
-      case 'failed': return "bg-gray-100 text-gray-700 border-gray-200";
-      
-      case 'fulfilled': return "bg-green-100 text-green-700 border-green-200";
-      case 'unfulfilled': return "bg-amber-100 text-amber-700 border-amber-200";
-      case 'shipped': return "bg-blue-100 text-blue-700 border-blue-200";
-      
-      default: return "bg-gray-50 text-gray-600 border-gray-200";
-    }
-  };
+const StatusBadge = ({ status }) => {
+  // Normalize status for styling
+  const s = status ? status.toLowerCase() : 'pending';
+  
+  let styles = "bg-gray-50 text-gray-600 border-gray-200";
+
+  if (s === 'completed' || s === 'paid' || s === 'fulfilled') {
+      styles = "bg-green-100 text-green-700 border-green-200";
+  } else if (s === 'pending') {
+      styles = "bg-amber-100 text-amber-700 border-amber-200";
+  } else if (s === 'failed' || s === 'cancelled') {
+      styles = "bg-red-100 text-red-700 border-red-200";
+  } else if (s === 'shipped') {
+      styles = "bg-blue-100 text-blue-700 border-blue-200";
+  }
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStyles(status)}`}>
-      {status}
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles} capitalize`}>
+      {status || 'Unknown'}
     </span>
   );
 };
 
-// --- Mock Data ---
-const MOCK_ORDERS = [
-    { id: "#1001", date: "2023-06-27", customer: "Customer A", payment: "Paid", fulfillment: "Unfulfilled", total: "$45,000" },
-    { id: "#1002", date: "2023-06-28", customer: "Customer B", payment: "Pending", fulfillment: "Unfulfilled", total: "$45,000" },
-    { id: "#1003", date: "2023-06-27", customer: "Artist Name", payment: "Paid", fulfillment: "Fulfilled", total: "$75,000" },
-    { id: "#1004", date: "2023-06-26", customer: "Artist Name", payment: "Paid", fulfillment: "Unfulfilled", total: "$35,000" },
-    { id: "#1005", date: "2023-06-26", customer: "Artist Name", payment: "Paid", fulfillment: "Fulfilled", total: "$30,000" },
-    { id: "#1006", date: "2023-06-26", customer: "Artist Name", payment: "Pending", fulfillment: "Unfulfilled", total: "$25,000" },
-    { id: "#1007", date: "2023-06-27", customer: "Customer A", payment: "Paid", fulfillment: "Unfulfilled", total: "$45,000" },
-    { id: "#1008", date: "2023-06-26", customer: "Artist Name", payment: "Pending", fulfillment: "Unfulfilled", total: "$75,000" },
-];
-
 const AdminOrders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+
+  // 1. Fetch Orders from Appwrite
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await service.getOrders(); 
+        setOrders(response.documents);
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  // 2. Filter Logic
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+        (order.customerName && order.customerName.toLowerCase().includes(searchTerm.toLowerCase())) || 
+        (order.$id && order.$id.includes(searchTerm));
+    
+    const matchesStatus = filterStatus ? order.status === filterStatus : true;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Helper to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+        year: 'numeric', month: 'short', day: 'numeric'
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-cream flex font-sans text-charcoal">
+    <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
       
-      {/* --- SIDEBAR (Same as Dashboard) --- */}
-      <aside className="w-64 bg-beige-light border-r border-beige-border fixed h-full hidden md:flex flex-col z-20">
+      {/* --- SIDEBAR --- */}
+      <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col z-20">
         <div className="p-8">
             <h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1>
         </div>
@@ -84,18 +111,6 @@ const AdminOrders = () => {
             <SidebarItem icon={Palette} label="Upload" to="/admin/upload" />
             <SidebarItem icon={Settings} label="Settings" to="#" />
         </nav>
-        
-        <div className="p-4 border-t border-[#EBE7DE]">
-            <div className="flex items-center space-x-3 px-4 py-3">
-                <div className="h-8 w-8 rounded-full bg-gray-200 overflow-hidden">
-                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=2D2D2D&color=fff" alt="Admin" />
-                </div>
-                <div>
-                    <p className="text-sm font-medium">Admin User</p>
-                    <p className="text-xs text-gray-500">Store Owner</p>
-                </div>
-            </div>
-        </div>
       </aside>
 
       {/* --- MAIN CONTENT --- */}
@@ -105,32 +120,27 @@ const AdminOrders = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <h2 className="text-3xl font-serif text-charcoal">Orders</h2>
             <div className="flex gap-2">
-                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-beige-border rounded-md text-sm font-medium hover:bg-gray-50 transition">
-                    <Download size={16} /> Export
+                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-md text-sm font-medium hover:bg-gray-50 transition">
+                    <Download size={16} /> Export CSV
                  </button>
             </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-white p-4 rounded-t-xl border border-beige-border border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white p-4 rounded-t-xl border border-gray-200 border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
             
             {/* Left: Dropdowns */}
             <div className="flex gap-3 w-full md:w-auto overflow-x-auto">
                 <div className="relative group">
-                    <select className="appearance-none pl-3 pr-8 py-2 bg-beige-light border border-beige-border rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[140px]">
-                        <option value="">Payment Status</option>
-                        <option value="paid">Paid</option>
+                    <select 
+                        className="appearance-none pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[140px]"
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        value={filterStatus}
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="completed">Completed</option>
                         <option value="pending">Pending</option>
                         <option value="failed">Failed</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
-
-                <div className="relative group">
-                    <select className="appearance-none pl-3 pr-8 py-2 bg-beige-light border border-beige-border rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[150px]">
-                        <option value="">Fulfillment Status</option>
-                        <option value="fulfilled">Fulfilled</option>
-                        <option value="unfulfilled">Unfulfilled</option>
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -141,58 +151,78 @@ const AdminOrders = () => {
                 <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input 
                     type="text" 
-                    placeholder="Search orders..." 
+                    placeholder="Search ID or Customer..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-[#EBE7DE] rounded-md text-sm focus:ring-1 focus:ring-charcoal outline-none transition-all"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-charcoal outline-none transition-all"
                 />
             </div>
         </div>
 
         {/* Table Section */}
-        <div className="bg-white rounded-b-xl border border-beige-border shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-beige-lighter2 text-charcoal border-b border-beige-border">
-                        <tr>
-                            <th className="px-6 py-4 font-semibold w-24">Order ID</th>
-                            <th className="px-6 py-4 font-semibold">Date</th>
-                            <th className="px-6 py-4 font-semibold">Customer</th>
-                            <th className="px-6 py-4 font-semibold">Payment</th>
-                            <th className="px-6 py-4 font-semibold">Fulfillment</th>
-                            <th className="px-6 py-4 font-semibold text-right">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-beige-border">
-                        {MOCK_ORDERS.filter(o => 
-                            o.customer.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            o.id.includes(searchTerm)
-                        ).map((order, i) => (
-                            <tr key={i} className="hover:bg-cream transition-colors group cursor-pointer">
-                                <td className="px-6 py-4 font-medium text-charcoal">{order.id}</td>
-                                <td className="px-6 py-4 text-gray-500">{order.date}</td>
-                                <td className="px-6 py-4 text-charcoal font-medium">{order.customer}</td>
-                                <td className="px-6 py-4">
-                                    <StatusBadge status={order.payment} type="payment" />
-                                </td>
-                                <td className="px-6 py-4">
-                                    <StatusBadge status={order.fulfillment} type="fulfillment" />
-                                </td>
-                                <td className="px-6 py-4 text-right font-medium text-charcoal">{order.total}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            
-            {/* Pagination Footer (Optional visual touch) */}
-            <div className="px-6 py-4 border-t border-beige-border bg-beige-light flex justify-between items-center text-xs text-gray-500">
-                <span>Showing 1-8 of 124 orders</span>
-                <div className="flex gap-2">
-                    <button className="px-3 py-1 border border-beige-border bg-white rounded hover:bg-gray-50 disabled:opacity-50">Prev</button>
-                    <button className="px-3 py-1 border border-beige-border bg-white rounded hover:bg-gray-50">Next</button>
+        <div className="bg-white rounded-b-xl border border-gray-200 shadow-sm overflow-hidden min-h-[400px]">
+            {loading ? (
+                <div className="flex h-64 items-center justify-center">
+                    <Loader2 className="animate-spin h-8 w-8 text-charcoal" />
                 </div>
-            </div>
+            ) : filteredOrders.length === 0 ? (
+                <div className="flex flex-col h-64 items-center justify-center text-gray-400">
+                    <ShoppingCart className="h-12 w-12 mb-2 opacity-20" />
+                    <p>No orders found.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-charcoal border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-4 font-semibold w-32">Order ID</th>
+                                <th className="px-6 py-4 font-semibold">Date</th>
+                                <th className="px-6 py-4 font-semibold">Customer</th>
+                                <th className="px-6 py-4 font-semibold">Payment</th>
+                                <th className="px-6 py-4 font-semibold">Method</th>
+                                <th className="px-6 py-4 font-semibold text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {filteredOrders.map((order) => {
+                                // 👇 LOGIC: Calculate Total Amount
+                                // Using 'amount' field from DB. Defaults to 0 if missing.
+                                const orderTotal = parseFloat(order.amount) || 0;
+                                
+                                // Determine currency symbol based on backend data (if saved) or guess
+                                // Assuming USD ($) as default, but you can check if amount seems like INR or add a 'currency' field to DB later
+                                const currency = order.amount > 5000 ? '₹' : '$'; // Simple heuristic: >5000 is likely INR
+
+                                return (
+                                <tr key={order.$id} className="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                    <td className="px-6 py-4 font-medium text-charcoal truncate max-w-[120px]" title={order.$id}>
+                                        #{order.$id.substring(0, 8)}...
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500">
+                                        {formatDate(order.$createdAt)}
+                                    </td>
+                                    <td className="px-6 py-4 text-charcoal font-medium">
+                                        {order.customerName || "Guest"}
+                                        <div className="text-xs text-gray-400 font-normal">{order.email}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <StatusBadge status={order.status} />
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 capitalize">
+                                        {/* Display Payment Method: PayPal vs Manual/COD */}
+                                        {order.paymentId && order.paymentId.length > 20 ? "PayPal" : "COD / Manual"}
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-medium text-charcoal font-serif">
+                                        {/* Display Formatted Amount */}
+                                        {currency}{orderTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
 
       </main>

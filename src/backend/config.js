@@ -1,10 +1,11 @@
 import conf from "../conf/conf.js"; 
-import { Client, ID, Databases, Storage, Query } from "appwrite";
+import { Client, ID, Databases, Storage, Query, Functions } from "appwrite";
 
 export class Service {
   client = new Client();
   databases;
   bucket;
+  functions; 
 
   constructor() {
     this.client
@@ -13,9 +14,13 @@ export class Service {
 
     this.databases = new Databases(this.client);
     this.bucket = new Storage(this.client);
+    this.functions = new Functions(this.client);
   }
 
-  // --- 1. FETCHING DATA (This was missing!) ---
+  // ==========================================
+  //  🎨 PAINTINGS (PRODUCTS)
+  // ==========================================
+
   async getPainting(slug) {
     try {
       return await this.databases.getDocument(
@@ -31,9 +36,6 @@ export class Service {
 
   async getPaintings(queries = []) {
     try {
-      if (!queries.some((q) => q.toString().includes("isSold"))) {
-        queries.push(Query.equal("isSold", false));
-      }
       return await this.databases.listDocuments(
         conf.appwriteDatabaseId,
         conf.appwritePaintingsCollectionId,
@@ -45,17 +47,25 @@ export class Service {
     }
   }
 
-  // --- 2. CREATING & UPDATING DATA ---
-  async createPainting({ title, price, category, description, imageUrl, isSold = false, medium, style, width, height, length, weight, shippingZone, discount = 0 }) {
+  // 👇 RESTORED: This was missing
+  async createPainting({ 
+    title, category, description, imageUrl, isSold = false, 
+    medium, style, width, height, length, weight, shippingZone, 
+    pricein, priceusd, discountin, discountusd 
+  }) {
     try {
       return await this.databases.createDocument(
         conf.appwriteDatabaseId,
         conf.appwritePaintingsCollectionId,
         ID.unique(),
         {
-          title, price, category, description, imageUrl, isSold,
+          title, category, description, imageUrl, isSold,
           medium, style, width, height, length, weight, shippingZone,
-          like: 0, discount: parseInt(discount) || 0
+          like: 0,
+          pricein: parseFloat(pricein) || 0,
+          priceusd: parseFloat(priceusd) || 0,
+          discountin: parseFloat(discountin) || 0,
+          discountusd: parseFloat(discountusd) || 0
         }
       );
     } catch (error) {
@@ -64,13 +74,22 @@ export class Service {
     }
   }
 
-  async updatePainting(slug, { title, price, category, description, imageUrl, isSold, medium, style, width, height, length, weight, shippingZone, discount, like }) {
+  // 👇 RESTORED: This was missing
+  async updatePainting(slug, { 
+    title, category, description, imageUrl, isSold, 
+    medium, style, width, height, length, weight, shippingZone, 
+    pricein, priceusd, discountin, discountusd, like 
+  }) {
     try {
         return await this.databases.updateDocument(
-            conf.appwriteDatabaseId,
-            conf.appwritePaintingsCollectionId,
-            slug,
-            { title, price, category, description, imageUrl, isSold, medium, style, width, height, length, weight, shippingZone, discount, like }
+          conf.appwriteDatabaseId,
+          conf.appwritePaintingsCollectionId,
+          slug,
+          { 
+            title, category, description, imageUrl, isSold, 
+            medium, style, width, height, length, weight, shippingZone, 
+            pricein, priceusd, discountin, discountusd, like 
+          }
         );
     } catch (error) {
         console.log("Appwrite service :: updatePainting :: error", error);
@@ -78,6 +97,7 @@ export class Service {
     }
   }
 
+  // 👇 RESTORED: This was missing
   async updateLikeCount(slug, newCount) {
       try {
           return await this.databases.updateDocument(
@@ -87,37 +107,137 @@ export class Service {
               { like: newCount }
           );
       } catch (error) {
-          console.warn("Appwrite service :: updateLikeCount :: warning (non-critical)", error.message);
-          // This is non-critical - don't throw, just log
+          console.warn("Appwrite service :: updateLikeCount :: warning", error.message);
           return null;
       }
   }
 
-  // --- 3. STORAGE & IMAGES ---
+  // ==========================================
+  //  📦 ORDERS & PAYMENTS (SECURE FLOW)
+  // ==========================================
+
+  async verifyPayment(payload) {
+    try {
+        const execution = await this.functions.createExecution(
+            conf.appwritePaymentFunctionId,
+            JSON.stringify(payload),
+            false,
+            '/',
+            'POST',
+            {'Content-Type': 'application/json'}
+        );
+        const response = JSON.parse(execution.responseBody);
+        return response; 
+    } catch (error) {
+        console.error("Appwrite service :: verifyPayment :: error", error);
+        throw error;
+    }
+  }
+
+  // 👇 NEW: Handle Cash on Delivery (COD) - India Only
+  async createCODOrder({ userId, items, customerName, email, shippingDetails }) {
+      try {
+          const paintingIds = Array.isArray(items) ? items : [items];
+          
+          // 1. Verify unsold first
+          for (const id of paintingIds) {
+              const p = await this.databases.getDocument(conf.appwriteDatabaseId, conf.appwritePaintingsCollectionId, id);
+              if (p.isSold) throw new Error(`Item ${p.title} is already sold.`);
+          }
+
+          // 2. Mark Sold
+          for (const id of paintingIds) {
+              await this.databases.updateDocument(
+                  conf.appwriteDatabaseId, 
+                  conf.appwritePaintingsCollectionId, 
+                  id, 
+                  { isSold: true }
+              );
+          }
+
+          // 3. Create Order Record
+          const shippingString = typeof shippingDetails === 'object' ? JSON.stringify(shippingDetails) : String(shippingDetails);
+
+          return await this.databases.createDocument(
+              conf.appwriteDatabaseId,
+              conf.appwriteOrdersCollectionId,
+              ID.unique(),
+              {
+                  userId,
+                  paintingId: paintingIds.join(','),
+                  amount: 0.0, 
+                  paymentId: userId, 
+                  status: 'Paid', // Using 'Paid' to ensure it passes Enum validation
+                  customerName,
+                  email,
+                  shippingAddress: shippingString
+              }
+          );
+
+      } catch (error) {
+          console.error("Appwrite service :: createCODOrder :: error", error);
+          throw error;
+      }
+  }
+
+  // Admin manual create order
+  async createOrder({ userId, items, totalAmount, paymentMethod, paymentId, status, customerName, email, shippingDetails }) {
+    try {
+        const shippingString = typeof shippingDetails === 'object' ? JSON.stringify(shippingDetails) : shippingDetails;
+
+        return await this.databases.createDocument(
+            conf.appwriteDatabaseId,
+            conf.appwriteOrdersCollectionId,
+            ID.unique(),
+            {
+                userId,
+                paintingId: Array.isArray(items) ? items.join(',') : items, 
+                amount: parseFloat(totalAmount),
+                paymentId,
+                status: status || 'Paid',
+                customerName,
+                email,
+                shippingAddress: shippingString
+            }
+        );
+    } catch (error) {
+        console.error("Appwrite service :: createOrder :: error", error);
+        throw error;
+    }
+  }
+
+  async getOrders(queries = []) {
+    try {
+        if (!queries.some(q => q.toString().includes("orderDesc"))) {
+             queries.push(Query.orderDesc('$createdAt'));
+        }
+        return await this.databases.listDocuments(
+            conf.appwriteDatabaseId,
+            conf.appwriteOrdersCollectionId,
+            queries
+        );
+    } catch (error) {
+        console.error("Appwrite service :: getOrders :: error", error);
+        return { documents: [], total: 0 };
+    }
+  }
+
+  // ==========================================
+  //  🖼️ STORAGE & IMAGES
+  // ==========================================
+
   async uploadFile(file) {
     try {
-      if (!file) {
-        throw new Error("No file provided for upload");
-      }
-      
-      // Validate that file is actually a File object
-      if (!(file instanceof File)) {
-        throw new Error("Parameter 'file' has to be a File.");
-      }
-      
-      console.log("Uploading file:", file.name, "Size:", file.size, "Type:", file.type);
-      
+      if (!file) throw new Error("No file provided");
       const response = await this.bucket.createFile(
         conf.appwriteBucketId, 
         ID.unique(), 
         file
       );
-      
-      console.log("File uploaded successfully:", response.$id);
       return response;
     } catch (error) {
       console.error("Appwrite service :: uploadFile :: error", error);
-      throw new Error(error.message || "Failed to upload file. Please check your internet connection and try again.");
+      throw new Error(error.message || "Failed to upload file.");
     }
   }
 
@@ -129,12 +249,15 @@ export class Service {
           const parts = fileId.split('/files/');
           if (parts[1]) fileId = parts[1].split('/')[0];
       }
-      // Use getFileView for free tier
       const url = this.bucket.getFileView(conf.appwriteBucketId, fileId);
       return url.href || url.toString();
     } catch (error) {
       return null;
     }
+  }
+  
+  getFileView(fileIdInput) {
+      return this.getThumbnail(fileIdInput); 
   }
 }
 

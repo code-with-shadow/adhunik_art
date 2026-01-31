@@ -24,6 +24,7 @@ const Header = () => {
     { name: 'Home', slug: '/' },
     { name: 'Shop', slug: '/shop' },
     { name: 'About', slug: '/about' },
+    { name: 'Oders', slug: '/orders' },
   ];
 
   const handleLogout = () => {

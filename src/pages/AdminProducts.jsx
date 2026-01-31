@@ -41,6 +41,8 @@ const AdminProducts = () => {
     loadProducts();
   }, []);
 
+  console.log("Products:", products);
+
   const handleEdit = (product) => {
       navigate('/admin/upload', { state: { product } });
   };
@@ -125,7 +127,8 @@ const AdminProducts = () => {
                             <th className="px-6 py-4 font-semibold w-16">Image</th>
                             <th className="px-6 py-4 font-semibold">Product Name</th>
                             <th className="px-6 py-4 font-semibold">Status</th>
-                            <th className="px-6 py-4 font-semibold">Price</th>
+                            <th className="px-6 py-4 font-semibold">PriceIND</th>
+                            <th className="px-6 py-4 font-semibold">PriceUSD</th>
                             <th className="px-6 py-4 font-semibold">Discount</th>
                             <th className="px-6 py-4 font-semibold text-right">Actions</th>
                         </tr>
@@ -143,8 +146,9 @@ const AdminProducts = () => {
                                     <div className="font-medium text-charcoal">{product.title}</div>
                                 </td>
                                 <td className="px-6 py-3"><StatusBadge status={product.isSold} /></td>
-                                <td className="px-6 py-3 font-medium">${product.price?.toLocaleString()}</td>
-                                <td className="px-6 py-3 text-red-500 font-bold">{product.discount > 0 ? `${product.discount}% OFF` : '-'}</td>
+                                <td className="px-6 py-3 font-medium">${product.pricein?.toLocaleString()}</td>
+                                <td className="px-6 py-3 font-medium">${product.priceusd?.toLocaleString()}</td>
+                                <td className="px-6 py-3 text-red-500 font-bold">{product.discountusd > 0 ? `${product.discountusd}% OFF` : '-'}</td>
                                 <td className="px-6 py-3 text-right">
                                     <button onClick={() => handleEdit(product)} className="text-gray-500 hover:text-charcoal p-2 border border-gray-200 rounded-md hover:bg-gray-100 transition">
                                         <Edit size={16} />

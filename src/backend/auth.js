@@ -7,104 +7,55 @@ export class AuthService {
     databases;
 
     constructor() {
-        this.client
-            .setEndpoint(conf.appwriteUrl)
-            .setProject(conf.appwriteProjectId);
+        this.client.setEndpoint(conf.appwriteUrl).setProject(conf.appwriteProjectId);
         this.account = new Account(this.client);
         this.databases = new Databases(this.client);
     }
 
-    async createAccount({ email, password, name, country }) {
+    async createAccount({ email, password, name, country, phone }) {
         try {
-            // 1. Create User in Appwrite Auth
+            // 1. Create Appwrite Auth User
             const userAccount = await this.account.create(ID.unique(), email, password, name);
-
             if (userAccount) {
-                // ⚡ FIX: Login FIRST to establish a session
-                // This gives the user permission to write to the database
+                // 2. Login immediately
                 await this.login({ email, password });
-
-                // 2. NOW Create the Document (as a logged-in user)
+                
+                // 3. Save details to Database
                 try {
                     await this.databases.createDocument(
                         conf.appwriteDatabaseId,
                         conf.appwriteUserCollectionId,
-                        userAccount.$id, // Link Auth ID to Database ID
+                        userAccount.$id,
                         {
-                            name: name,
-                            email: email,
-                            country: country,
+                            name,
+                            email,
+                            country,
+                            phone, // 👈 Saving Phone
                             isAdmin: false
                         }
                     );
-                } catch (dbError) {
-                    console.warn("Could not save user profile to database (collection might not exist):", dbError.message);
-                    // Don't throw - the auth user was created successfully
-                }
-
-                return userAccount;
-            } else {
+                } catch (dbError) { console.warn("DB Save Error:", dbError); }
                 return userAccount;
             }
-        } catch (error) {
-            console.log("Appwrite service :: createAccount :: error", error);
-            throw error;
-        }
+        } catch (error) { throw error; }
     }
 
     async login({ email, password }) {
-        try {
-            return await this.account.createEmailPasswordSession(email, password);
-        } catch (error) {
-            console.log("Appwrite service :: login :: error", error);
-            throw error;
-        }
+        return await this.account.createEmailPasswordSession(email, password);
     }
 
     async getCurrentUser() {
         try {
             const authUser = await this.account.get();
-            
-            // Try to fetch extra details from Database
             try {
                 const dbUser = await this.databases.getDocument(
-                    conf.appwriteDatabaseId,
-                    conf.appwriteUserCollectionId,
-                    authUser.$id
+                    conf.appwriteDatabaseId, conf.appwriteUserCollectionId, authUser.$id
                 );
                 return { ...authUser, ...dbUser }; 
-            } catch (dbError) {
-                return authUser;
-            }
-        } catch (error) {
-            // console.log("Appwrite service :: getCurrentUser :: error", error);
-        }
-        return null;
+            } catch (dbError) { return authUser; }
+        } catch (error) { return null; }
     }
-
-    async logout() {
-        try {
-            await this.account.deleteSessions();
-        } catch (error) {
-            console.log("Appwrite service :: logout :: error", error);
-        }
-    }
-
-    async updateUserAddress(userId, addressString) {
-        try {
-            return await this.databases.updateDocument(
-                conf.appwriteDatabaseId,
-                conf.appwriteUserCollectionId,
-                userId,
-                { address: addressString }
-            );
-        } catch (error) {
-            console.warn("Could not update user address:", error.message);
-            // Non-critical error - don't throw
-            return null;
-        }
-    }
+    async logout() { await this.account.deleteSessions(); }
 }
-
 const authService = new AuthService();
 export default authService;

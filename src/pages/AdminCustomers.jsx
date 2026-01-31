@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import service from '../backend/config'; // Import backend service
 import { 
   LayoutDashboard, 
   Package, 
@@ -11,7 +12,8 @@ import {
   ChevronDown,
   Download,
   Mail,
-  MapPin
+  MapPin,
+  Loader2
 } from 'lucide-react';
 
 // --- Components (Reused) ---
@@ -30,28 +32,101 @@ const SidebarItem = ({ icon: Icon, label, to = "#", active }) => (
   </Link>
 );
 
-// --- Mock Data ---
-const MOCK_CUSTOMERS = [
-    { id: 1, name: "Alice Smith", email: "alice@example.com", city: "New York", country: "USA", orders: 5, spent: "$4,500", status: "Active" },
-    { id: 2, name: "John Doe", email: "john.doe@example.com", city: "London", country: "UK", orders: 4, spent: "$4,500", status: "Active" },
-    { id: 3, name: "Emma Wilson", email: "emma.w@example.com", city: "Berlin", country: "Germany", orders: 3, spent: "$4,500", status: "Inactive" },
-    { id: 4, name: "Anna Smith", email: "anna@example.com", city: "New York", country: "USA", orders: 3, spent: "$14,500", status: "Active" },
-    { id: 5, name: "Michael Brown", email: "m.brown@example.com", city: "Toronto", country: "Canada", orders: 5, spent: "$10,000", status: "Active" },
-    { id: 6, name: "Manuel Smith", email: "nanna@example.com", city: "New York", country: "USA", orders: 3, spent: "$3,500", status: "Inactive" },
-    { id: 7, name: "Ayenk Smith", email: "niena@example.com", city: "New York", country: "USA", orders: 7, spent: "$10,000", status: "Active" },
-    { id: 8, name: "Alvea Smith", email: "alvea@example.com", city: "New York", country: "USA", orders: 2, spent: "$4,300", status: "Active" },
-    { id: 9, name: "Robert Jones", email: "rob.j@example.com", city: "Sydney", country: "Australia", orders: 3, spent: "$4,500", status: "Active" },
-    { id: 10, name: "Sarah Miller", email: "sarah.m@example.com", city: "Paris", country: "France", orders: 1, spent: "$4,500", status: "New" },
-];
-
 const AdminCustomers = () => {
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterCountry, setFilterCountry] = useState('');
+
+  // 1. Fetch Customers & Calculate Stats
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch all orders first to aggregate customer data
+        const ordersResponse = await service.getOrders();
+        const orders = ordersResponse.documents;
+
+        // Group orders by User ID (or Email) to create "Customer Profiles"
+        const customerMap = {};
+
+        orders.forEach(order => {
+            // Use userId if available, fallback to email as unique key
+            const key = order.userId || order.email; 
+            
+            // Parse shipping details safely
+            let shipping = {};
+            try {
+                shipping = typeof order.shippingAddress === 'string' 
+                    ? JSON.parse(order.shippingAddress) 
+                    : order.shippingAddress || {};
+            } catch (e) {
+                console.warn("Error parsing shipping for order", order.$id);
+            }
+
+            if (!customerMap[key]) {
+                customerMap[key] = {
+                    id: key,
+                    name: order.customerName || "Guest",
+                    email: order.email || "No Email",
+                    // Extract location from the first order found
+                    country: shipping.country || "Unknown",
+                    city: shipping.city || "-",
+                    totalOrders: 0,
+                    totalSpent: 0,
+                    lastActive: order.$createdAt
+                };
+            }
+
+            // 👇 LOGIC: Aggregate Stats
+            // Increment order count
+            customerMap[key].totalOrders += 1;
+            
+            // Add to total spent (using 'amount' from your DB schema)
+            const orderAmount = parseFloat(order.amount) || 0;
+            customerMap[key].totalSpent += orderAmount;
+            
+            // Keep most recent date
+            if (new Date(order.$createdAt) > new Date(customerMap[key].lastActive)) {
+                customerMap[key].lastActive = order.$createdAt;
+                // Update location to most recent if available
+                if (shipping.country) {
+                    customerMap[key].country = shipping.country;
+                    customerMap[key].city = shipping.city || "-";
+                }
+            }
+        });
+
+        // Convert Map to Array
+        setCustomers(Object.values(customerMap));
+      } catch (error) {
+        console.error("Failed to fetch customers:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // 2. Filter Logic
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        c.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCountry = filterCountry ? c.country === filterCountry : true;
+
+    return matchesSearch && matchesCountry;
+  });
+
+  // Helper to get unique countries for filter dropdown
+  const uniqueCountries = [...new Set(customers.map(c => c.country))].filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-cream flex font-sans text-charcoal">
+    <div className="min-h-screen bg-[#FDFBF7] flex font-sans text-charcoal">
       
       {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-beige-light border-r border-beige-border fixed h-full hidden md:flex flex-col z-20">
+      <aside className="w-64 bg-[#F9F7F2] border-r border-[#EBE7DE] fixed h-full hidden md:flex flex-col z-20">
         <div className="p-8">
             <h1 className="text-2xl font-serif text-charcoal">Artisan Canvas</h1>
         </div>
@@ -64,18 +139,6 @@ const AdminCustomers = () => {
             <SidebarItem icon={Palette} label="Upload" to="/admin/upload" />
             <SidebarItem icon={Settings} label="Settings" to="#" />
         </nav>
-        
-        <div className="p-4 border-t border-[#EBE7DE]">
-            <div className="flex items-center space-x-3 px-4 py-3">
-                <div className="h-8 w-8 rounded-full bg-gray-200 overflow-hidden">
-                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=2D2D2D&color=fff" alt="Admin" />
-                </div>
-                <div>
-                    <p className="text-sm font-medium">Admin User</p>
-                    <p className="text-xs text-gray-500">Store Owner</p>
-                </div>
-            </div>
-        </div>
       </aside>
 
       {/* --- MAIN CONTENT --- */}
@@ -85,33 +148,27 @@ const AdminCustomers = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <h2 className="text-3xl font-serif text-charcoal">Customers</h2>
             <div className="flex gap-2">
-                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-beige-border rounded-md text-sm font-medium hover:bg-gray-50 transition">
+                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-md text-sm font-medium hover:bg-gray-50 transition">
                     <Download size={16} /> Export CSV
                  </button>
             </div>
         </div>
 
         {/* Filters Bar */}
-        <div className="bg-white p-4 rounded-t-xl border border-beige-border border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
+        <div className="bg-white p-4 rounded-t-xl border border-gray-200 border-b-0 flex flex-col md:flex-row gap-4 justify-between items-center">
             
             {/* Left: Dropdowns */}
             <div className="flex gap-3 w-full md:w-auto overflow-x-auto">
                 <div className="relative group">
-                    <select className="appearance-none pl-3 pr-8 py-2 bg-beige-light border border-beige-border rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[140px]">
-                        <option value="">Status (All)</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="new">New</option>
-                    </select>
-                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-                </div>
-
-                <div className="relative group">
-                    <select className="appearance-none pl-3 pr-8 py-2 bg-beige-light border border-beige-border rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[150px]">
-                        <option value="">Country (All)</option>
-                        <option value="usa">USA</option>
-                        <option value="uk">UK</option>
-                        <option value="germany">Germany</option>
+                    <select 
+                        className="appearance-none pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-charcoal outline-none focus:ring-1 focus:ring-charcoal cursor-pointer min-w-[150px]"
+                        onChange={(e) => setFilterCountry(e.target.value)}
+                        value={filterCountry}
+                    >
+                        <option value="">All Countries</option>
+                        {uniqueCountries.map(country => (
+                            <option key={country} value={country}>{country}</option>
+                        ))}
                     </select>
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
@@ -122,66 +179,84 @@ const AdminCustomers = () => {
                 <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input 
                     type="text" 
-                    placeholder="Search customers..." 
+                    placeholder="Search name or email..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 border border-[#EBE7DE] rounded-md text-sm focus:ring-1 focus:ring-charcoal outline-none transition-all"
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-charcoal outline-none transition-all"
                 />
             </div>
         </div>
 
         {/* Table Section */}
-        <div className="bg-white rounded-b-xl border border-beige-border shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-beige-lighter2 text-charcoal border-b border-beige-border">
-                        <tr>
-                            <th className="px-6 py-4 font-semibold">Customer Name</th>
-                            <th className="px-6 py-4 font-semibold">Email Address</th>
-                            <th className="px-6 py-4 font-semibold">City</th>
-                            <th className="px-6 py-4 font-semibold">Country</th>
-                            <th className="px-6 py-4 font-semibold text-center">Total Orders</th>
-                            <th className="px-6 py-4 font-semibold text-right">Total Spent</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-beige-border">
-                        {MOCK_CUSTOMERS.filter(c => 
-                            c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            c.email.toLowerCase().includes(searchTerm.toLowerCase())
-                        ).map((customer, i) => (
-                            <tr key={i} className="hover:bg-cream transition-colors group cursor-pointer">
-                                <td className="px-6 py-4 font-medium text-charcoal">{customer.name}</td>
-                                <td className="px-6 py-4 text-gray-500 flex items-center gap-2">
-                                    <Mail size={14} className="text-gray-300" />
-                                    {customer.email}
-                                </td>
-                                <td className="px-6 py-4 text-charcoal">{customer.city}</td>
-                                <td className="px-6 py-4 text-charcoal">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin size={14} className="text-gray-300" />
-                                        {customer.country}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    <span className="bg-gray-100 text-gray-700 py-1 px-3 rounded-full text-xs font-medium">
-                                        {customer.orders}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right font-medium text-charcoal">{customer.spent}</td>
+        <div className="bg-white rounded-b-xl border border-gray-200 shadow-sm overflow-hidden min-h-[400px]">
+            {loading ? (
+                <div className="flex h-64 items-center justify-center">
+                    <Loader2 className="animate-spin h-8 w-8 text-charcoal" />
+                </div>
+            ) : filteredCustomers.length === 0 ? (
+                <div className="flex flex-col h-64 items-center justify-center text-gray-400">
+                    <Users className="h-12 w-12 mb-2 opacity-20" />
+                    <p>No customers found.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-charcoal border-b border-gray-200">
+                            <tr>
+                                <th className="px-6 py-4 font-semibold">Customer Name</th>
+                                <th className="px-6 py-4 font-semibold">Email Address</th>
+                                <th className="px-6 py-4 font-semibold">Location</th>
+                                <th className="px-6 py-4 font-semibold text-center">Orders</th>
+                                <th className="px-6 py-4 font-semibold text-right">Lifetime Spent</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {filteredCustomers.map((customer, i) => (
+                                <tr key={i} className="hover:bg-gray-50 transition-colors group cursor-pointer">
+                                    <td className="px-6 py-4 font-medium text-charcoal">
+                                        {customer.name}
+                                        <div className="text-xs text-gray-400 font-normal mt-0.5">
+                                            Last Active: {new Date(customer.lastActive).toLocaleDateString()}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500">
+                                        <div className="flex items-center gap-2">
+                                            <Mail size={14} className="text-gray-300" />
+                                            {customer.email}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-charcoal">
+                                        <div className="flex items-center gap-2">
+                                            <MapPin size={14} className="text-gray-300" />
+                                            {customer.city !== '-' ? `${customer.city}, ` : ''}{customer.country}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className="bg-gray-100 text-gray-700 py-1 px-3 rounded-full text-xs font-medium">
+                                            {customer.totalOrders}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-right font-medium text-charcoal font-serif">
+                                        {/* Display aggregated total spent */}
+                                        ${customer.totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
             
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-beige-border bg-beige-light flex justify-between items-center text-xs text-gray-500">
-                <span>Showing {MOCK_CUSTOMERS.length} customers</span>
-                <div className="flex gap-2">
-                    <button className="px-3 py-1 border border-beige-border bg-white rounded hover:bg-gray-50 disabled:opacity-50">Prev</button>
-                    <button className="px-3 py-1 border border-beige-border bg-white rounded hover:bg-gray-50">Next</button>
+            {!loading && filteredCustomers.length > 0 && (
+                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center text-xs text-gray-500">
+                    <span>Showing {filteredCustomers.length} customers</span>
+                    <div className="flex gap-2">
+                        <button className="px-3 py-1 border border-gray-200 bg-white rounded hover:bg-gray-100 disabled:opacity-50" disabled>Prev</button>
+                        <button className="px-3 py-1 border border-gray-200 bg-white rounded hover:bg-gray-100 disabled:opacity-50" disabled>Next</button>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
 
       </main>

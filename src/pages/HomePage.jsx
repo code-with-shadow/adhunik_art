@@ -5,9 +5,11 @@ import { fetchCategoryPaintings } from '../store/shopSlice';
 import { Loader2, ArrowRight } from 'lucide-react';
 import ProductCard from '../components/ProductCard.jsx';
 import service from '../backend/config';
+
+// ⚠️ Ensure this image exists in your assets folder, or change the path
 import HERO_IMAGE_URL from '../assets/Gemini_Generated_Image_ys2ex3ys2ex3ys2e.png';
 
-// 1. Define the categories exactly as in your sketch
+// 1. Define the categories
 const CATEGORIES = [
   'Landscape', 'Still Life', 'Cloudscape', 
   'Abstract', 'Flora', 'Expressionism', 
@@ -16,16 +18,16 @@ const CATEGORIES = [
   'Miniature', 'Misc'
 ];
 
-// 2. Section Row Component (Updated for 5 items max)
+// 2. Section Row Component
 const SectionRow = ({ title, linkTo, paintings, loading, id }) => {
-  // If loading, show spinner
+  // Loading State
   if (loading) return (
       <section id={id} className="py-12 flex justify-center border-b border-gray-100 min-h-[300px]">
         <Loader2 className="animate-spin h-8 w-8 text-charcoal" />
       </section>
   );
 
-  // If no paintings found for this category, hide the section to keep UI clean
+  // If no paintings (or all are sold), hide this section entirely
   if (!paintings || paintings.length === 0) return null;
 
   return (
@@ -41,10 +43,10 @@ const SectionRow = ({ title, linkTo, paintings, loading, id }) => {
         </Link>
       </div>
 
-      {/* Grid - Strictly 5 columns, hidden overflow */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 overflow-hidden">
+      {/* Grid - Strictly 5 columns */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {paintings.slice(0, 5).map((painting) => (
-          <div key={painting.$id} className="w-full">
+          <div key={painting.$id} className="w-full h-full">
              <ProductCard painting={painting} />
           </div>
         ))}
@@ -56,18 +58,18 @@ const SectionRow = ({ title, linkTo, paintings, loading, id }) => {
 const HomePage = () => {
   const dispatch = useDispatch();
   
-  // Access the entire categories state object
+  // Access the categories state from Redux
   const categoriesState = useSelector((state) => state.shop.categories);
 
-  // 3. Fetch data for ALL categories in the list
+  // 3. Fetch data for ALL categories
   useEffect(() => {
     CATEGORIES.forEach(cat => {
-        // Only fetch if not already loaded to save bandwidth (optional optimization)
+        // We dispatch the action to fetch unsold items for each category
         dispatch(fetchCategoryPaintings({ category: cat, offset: 0 }));
     });
   }, [dispatch]);
 
-  // 4. Scroll Handler
+  // 4. Scroll Handler for the Sticky Bar
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
@@ -75,18 +77,15 @@ const HomePage = () => {
     }
   };
 
-  // 🔥 MAIN HERO IMAGE URL (Dark Wall Gallery)
-  // import HERO_IMAGE_URL from '../assets/Gim'; 
-
   return (
-    <div className="bg-cream min-h-screen">
+    <div className="bg-[#FDFBF7] min-h-screen">
       
       {/* --- HERO SECTION --- */}
       <div className="relative w-full h-[50vh] md:h-[60vh] overflow-hidden bg-charcoal">
         <img
           src={HERO_IMAGE_URL}
-          fetchPriority="high"
-          loading="eager"
+          // fallback in case image is missing
+          onError={(e) => e.target.style.display = 'none'} 
           alt="Gallery Interior"
           className="w-full h-full object-cover object-center opacity-90"
         />
@@ -100,12 +99,13 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* --- BOOKMARK SCROLL BAR (Sticky) --- */}
-      <div className="sticky top-0 z-30 bg-cream/95 backdrop-blur-sm border-b border-gray-200 shadow-sm py-4">
+      {/* --- STICKY CATEGORY NAV --- */}
+      <div className="sticky top-16 z-30 bg-[#FDFBF7]/95 backdrop-blur-sm border-b border-gray-200 shadow-sm py-4">
         <div className="max-w-[1400px] mx-auto px-4 overflow-x-auto no-scrollbar">
             <div className="flex space-x-4 min-w-max">
               {CATEGORIES.map((cat) => {
                 const catData = categoriesState[cat] || { items: [] };
+                // Use the first painting's image as the category thumbnail
                 const thumbId = catData.items[0]?.imageUrl;
                 const thumbUrl = thumbId ? service.getThumbnail(thumbId) : null;
 
@@ -113,7 +113,7 @@ const HomePage = () => {
                   <button
                     key={cat}
                     onClick={() => scrollToSection(cat)}
-                    className="flex flex-col items-center group cursor-pointer"
+                    className="flex flex-col items-center group cursor-pointer focus:outline-none"
                   >
                     <div className="w-28 h-16 border border-gray-300 rounded-md flex items-center justify-center bg-white hover:border-charcoal hover:shadow-md transition-all duration-300 relative overflow-hidden">
                       {thumbUrl ? (
@@ -123,7 +123,7 @@ const HomePage = () => {
                           {cat.split(' ')[0]}
                         </span>
                       )}
-                      <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-60 transition-opacity" />
+                      <div className="absolute inset-0 bg-gray-50 opacity-0 group-hover:opacity-20 transition-opacity" />
                     </div>
                     <span className="mt-2 text-xs font-medium text-gray-500 group-hover:text-charcoal uppercase tracking-wide">
                       {cat}
@@ -135,16 +135,15 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* --- MAIN CONTENT ROWS --- */}
+      {/* --- MAIN CATEGORY ROWS --- */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         {CATEGORIES.map((category) => {
-            // Safely access state (handle if key doesn't exist yet)
             const categoryData = categoriesState[category] || { items: [], loading: true };
             
             return (
                 <SectionRow 
                     key={category}
-                    id={category} // ID for scrolling
+                    id={category} 
                     title={category} 
                     linkTo={`/shop?category=${category}`} 
                     paintings={categoryData.items} 

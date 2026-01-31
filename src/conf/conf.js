@@ -7,6 +7,8 @@ const conf = {
     appwriteBucketId: String(import.meta.env.VITE_APPWRITE_BUCKET_ID),
     appwritePaymentFunctionId: String(import.meta.env.VITE_APPWRITE_FUNCTION_ID),
     appwriteUserCollectionId: String(import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID),
+    appwritePaypalClientId: String(import.meta.env.VITE_APPWRITE_PAYPAL_CLIENT_ID),
+    
 }
 
 export default conf;
